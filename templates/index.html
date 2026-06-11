@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>APT Detection System | Amity University Punjab</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-deep:    #0a0e1a;
+      --bg-card:    #111827;
+      --bg-hover:   #1a2236;
+      --accent:     #00d4ff;
+      --accent2:    #7c3aed;
+      --accent3:    #10b981;
+      --danger:     #ef4444;
+      --warning:    #f59e0b;
+      --medium:     #f97316;
+      --low:        #3b82f6;
+      --text:       #e2e8f0;
+      --muted:      #64748b;
+      --border:     #1e293b;
+      --critical:   #ff1744;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0a0e1a 0%, #111827 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top:0; z-index:100;
+      box-shadow: 0 2px 20px rgba(0,212,255,0.1);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo h1 { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .logo p { font-size: 0.72rem; color: var(--muted); }
+    .header-right {
+      display: flex; align-items: center; gap: 1.5rem;
+    }
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 0.78rem; color: var(--accent3);
+    }
+    .live-dot {
+      width: 8px; height: 8px; background: var(--accent3);
+      border-radius: 50%; animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.5; transform:scale(0.8); }
+    }
+    .clock { font-size: 0.82rem; color: var(--muted); font-family: monospace; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 0;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+    .tab-btn {
+      padding: 14px 20px;
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 0.85rem; font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; padding: 1.5rem 2rem; }
+    .tab-panel.active { display: block; }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.2rem 1.4rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+    .c-accent  { color: var(--accent);   }
+    .c-danger  { color: var(--danger);   }
+    .c-warn    { color: var(--warning);  }
+    .c-green   { color: var(--accent3);  }
+    .c-medium  { color: var(--medium);   }
+    .c-low     { color: var(--low);      }
+
+    /* ── Charts row ── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.2rem;
+    }
+    .chart-title { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .chart-card canvas { max-height: 220px; }
+
+    /* ── Alerts table ── */
+    .alerts-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 0.8rem;
+    }
+    .section-title { font-size: 0.9rem; font-weight: 600; }
+    .btn {
+      padding: 7px 14px; border-radius: 8px; border: none;
+      cursor: pointer; font-size: 0.8rem; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+    .btn-outline {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead { background: #0d1321; }
+    th { padding: 10px 14px; text-align: left; color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(30,41,59,0.5); }
+    tr:hover td { background: var(--bg-hover); }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em;
+    }
+    .badge-critical { background: rgba(255,23,68,0.15); color: var(--critical); border: 1px solid rgba(255,23,68,0.35); }
+    .badge-high     { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    .badge-medium   { background: rgba(249,115,22,0.15); color: var(--medium); border: 1px solid rgba(249,115,22,0.3); }
+    .badge-low      { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+    .badge-benign   { background: rgba(16,185,129,0.12); color: var(--accent3); border: 1px solid rgba(16,185,129,0.25); }
+    .badge-protocol { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); font-size: 0.7rem; }
+
+    /* ── Score bar ── */
+    .score-bar { display: flex; align-items: center; gap: 8px; }
+    .score-track { flex:1; height: 6px; background: var(--bg-deep); border-radius: 3px; overflow: hidden; min-width: 60px; }
+    .score-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+    .score-num { font-size: 0.75rem; color: var(--muted); min-width: 36px; font-family: monospace; }
+
+    /* ── Analyse tab ── */
+    .analyse-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+    }
+    .form-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.4rem;
+    }
+    .form-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 0.9rem; }
+    .form-group label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 4px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 8px 12px;
+      background: var(--bg-deep); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 0.82rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .result-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.4rem;
+    }
+    .result-empty { text-align: center; color: var(--muted); padding: 3rem 0; }
+    .result-empty .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .threat-meter { text-align: center; margin: 1rem 0; }
+    .threat-score-big { font-size: 3.5rem; font-weight: 700; line-height: 1; }
+    .threat-label-big { font-size: 1rem; font-weight: 600; margin-top: 0.3rem; }
+    .model-breakdown { margin-top: 1rem; }
+    .model-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .model-row:last-child { border-bottom: none; }
+    .model-name { font-size: 0.8rem; color: var(--muted); }
+    .model-score { font-size: 0.82rem; font-family: monospace; }
+
+    /* ── Simulate buttons ── */
+    .sim-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-top: 0.8rem; }
+    .sim-btn {
+      padding: 8px 6px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text); cursor: pointer;
+      font-size: 0.76rem; text-align: center; transition: all 0.2s;
+    }
+    .sim-btn:hover { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.05); }
+
+    /* ── Toast notifications ── */
+    #toast-container {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      display: flex; flex-direction: column; gap: 0.5rem; z-index: 9999;
+    }
+    .toast {
+      padding: 12px 16px; border-radius: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      font-size: 0.82rem; max-width: 320px;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .toast.critical { border-color: var(--critical); background: rgba(255,23,68,0.1); }
+    .toast.high     { border-color: var(--danger); }
+    .toast-title { font-weight: 600; margin-bottom: 2px; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) {
+      .charts-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .charts-row { grid-template-columns: 1fr; }
+      .analyse-grid { grid-template-columns: 1fr; }
+      .sim-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <h1>APT Detection System</h1>
+      <p>AI-Based Network Behavior Analysis · Amity University Punjab</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>Live Monitoring</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<!-- ── Tabs ── -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('alerts')">🚨 Alerts</button>
+  <button class="tab-btn" onclick="switchTab('traffic')">📡 Traffic</button>
+  <button class="tab-btn" onclick="switchTab('analyse')">🔬 Analyse</button>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TAB: DASHBOARD -->
+<!-- ═══════════════════════════════════════ -->
+<div id="tab-dashboard" class="tab-panel active">
+
+  <!-- Stat Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Flows Analysed</div>
+      <div class="stat-value c-accent" id="s-total">0</div>
+      <div class="stat-sub">Since system start</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Threats Detected</div>
+      <div class="stat-value c-danger" id="s-threats">0</div>
+      <div class="stat-sub" id="s-detect-rate">Detection rate: 0%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Critical Alerts</div>
+      <div class="stat-value c-danger" id="s-critical">0</div>
+      <div class="stat-sub">Immediate action required</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">High Severity</div>
+      <div class="stat-value c-warn" id="s-high">0</div>
+      <div class="stat-sub">Investigate promptly</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Medium Severity</div>
+      <div class="stat-value c-medium" id="s-medium">0</div>
+      <div class="stat-sub">Monitor closely</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">System Status</div>
+      <div class="stat-value c-green" style="font-size:1.2rem; margin-top:6px;">● ACTIVE</div>
+      <div class="stat-sub" id="s-uptime">Running</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Threat Score Timeline (Last 60 Flows)</div>
+      <canvas id="timelineChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Attack Distribution</div>
+      <canvas id="attackChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Protocol Breakdown</div>
+      <canvas id="protoChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent Alerts -->
+  <div class="alerts-header">
+    <span class="section-title">🚨 Recent Threats</span>
+    <button class="btn btn-outline btn-sm" onclick="switchTab('alerts')">View All →</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Time</th><th>Source IP</th><th>Destination IP</th>
+          <th>Protocol</th><th>Attack Type</th><th>Severity</th><th>Score</th>
+        </tr>
+      </thead>
+      <tbody id="recent-alerts-body">
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">Waiting for detections…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TAB: ALERTS -->
+<!-- ═══════════════════════════════════════ -->
+<div id="tab-alerts" class="tab-panel">
+  <div class="alerts-header">
+    <span class="section-title">🚨 All Threat Alerts</span>
+    <div style="display:flex;gap:8px;">
+      <select id="filter-severity" class="form-group" style="padding:6px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.8rem;" onchange="refreshAlerts()">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">Critical</option>
+        <option value="HIGH">High</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="LOW">Low</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="refreshAlerts()">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Timestamp</th><th>Src IP</th><th>Dst IP</th>
+          <th>Src Port</th><th>Dst Port</th><th>Protocol</th>
+          <th>Attack Type</th><th>Severity</th><th>Score</th>
+          <th>RF</th><th>ISO</th><th>LSTM</th>
+        </tr>
+      </thead>
+      <tbody id="alerts-body">
+        <tr><td colspan="13" style="text-align:center;color:var(--muted);padding:2rem;">No alerts yet…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TAB: TRAFFIC -->
+<!-- ═══════════════════════════════════════ -->
+<div id="tab-traffic" class="tab-panel">
+  <div class="alerts-header">
+    <span class="section-title">📡 Live Network Traffic</span>
+    <button class="btn btn-outline btn-sm" onclick="refreshTraffic()">↻ Refresh</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Timestamp</th><th>Src IP</th><th>Dst IP</th>
+          <th>Protocol</th><th>Classification</th><th>Threat Score</th>
+        </tr>
+      </thead>
+      <tbody id="traffic-body">
+        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">Monitoring traffic…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TAB: ANALYSE -->
+<!-- ═══════════════════════════════════════ -->
+<div id="tab-analyse" class="tab-panel">
+  <div class="analyse-grid">
+
+    <!-- Input Form -->
+    <div class="form-card">
+      <div class="form-title">🔬 Manual Flow Analysis</div>
+      <div class="input-row">
+        <div class="form-group">
+          <label>Flow Duration</label>
+          <input type="number" id="f-duration" placeholder="0.5" step="0.01" value="0.3"/>
+        </div>
+        <div class="form-group">
+          <label>Fwd Packets</label>
+          <input type="number" id="f-fwd-pkts" placeholder="10" value="12"/>
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label>Bwd Packets</label>
+          <input type="number" id="f-bwd-pkts" placeholder="8" value="9"/>
+        </div>
+        <div class="form-group">
+          <label>Flow Bytes/s</label>
+          <input type="number" id="f-bytes" placeholder="1000" step="0.1" value="350"/>
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label>Flow Packets/s</label>
+          <input type="number" id="f-pkt-rate" placeholder="5" step="0.1" value="4.5"/>
+        </div>
+        <div class="form-group">
+          <label>SYN Flag Count</label>
+          <input type="number" id="f-syn" placeholder="1" value="1"/>
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label>Flow IAT Mean</label>
+          <input type="number" id="f-iat-mean" placeholder="0.2" step="0.01" value="0.2"/>
+        </div>
+        <div class="form-group">
+          <label>Flow IAT Std</label>
+          <input type="number" id="f-iat-std" placeholder="0.05" step="0.001" value="0.08"/>
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label>Total Fwd Bytes</label>
+          <input type="number" id="f-fwd-bytes" placeholder="500" value="420"/>
+        </div>
+        <div class="form-group">
+          <label>Total Bwd Bytes</label>
+          <input type="number" id="f-bwd-bytes" placeholder="300" value="280"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="analyseFlow()" style="width:100%;margin-top:0.5rem;">
+        🔍 Analyse Flow
+      </button>
+
+      <!-- Simulate attacks -->
+      <div style="margin-top:1.2rem;">
+        <div class="form-title" style="font-size:0.82rem;color:var(--muted);">⚡ Simulate Attack Scenarios</div>
+        <div class="sim-grid">
+          <button class="sim-btn" onclick="simulateAttack('APT-Recon')">🔎 APT Recon</button>
+          <button class="sim-btn" onclick="simulateAttack('APT-LateralMovement')">↔️ Lateral Move</button>
+          <button class="sim-btn" onclick="simulateAttack('APT-Exfiltration')">📤 Exfiltration</button>
+          <button class="sim-btn" onclick="simulateAttack('APT-C2')">📡 C2 Beacon</button>
+          <button class="sim-btn" onclick="simulateAttack('DDoS')">💥 DDoS</button>
+          <button class="sim-btn" onclick="simulateAttack('PortScan')">🔍 Port Scan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-card" id="result-card">
+      <div class="result-empty">
+        <div class="icon">🛡️</div>
+        <div>Submit a flow to see analysis results</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">
+          Or click one of the attack simulation buttons
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ─── Utilities ────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  const labels = ['dashboard','alerts','traffic','analyse'];
+  btns[labels.indexOf(name)].classList.add('active');
+}
+
+function severityBadge(lvl) {
+  const map = {
+    CRITICAL: 'badge-critical', HIGH: 'badge-high',
+    MEDIUM: 'badge-medium',    LOW: 'badge-low', BENIGN: 'badge-benign'
+  };
+  return `<span class="badge ${map[lvl] || 'badge-benign'}">${lvl}</span>`;
+}
+
+function scoreBar(score) {
+  const pct = Math.round(score * 100);
+  const color = score > 0.85 ? '#ff1744' : score > 0.65 ? '#ef4444' :
+                score > 0.40 ? '#f97316' : '#3b82f6';
+  return `<div class="score-bar">
+    <div class="score-track"><div class="score-fill" style="width:${pct}%;background:${color}"></div></div>
+    <span class="score-num">${pct}%</span>
+  </div>`;
+}
+
+function toast(title, msg, level='high') {
+  const el = document.createElement('div');
+  el.className = `toast ${level}`;
+  el.innerHTML = `<div class="toast-title">${title}</div><div style="color:var(--muted)">${msg}</div>`;
+  document.getElementById('toast-container').prepend(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
+// ─── Clock ───────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+}, 1000);
+
+// ─── Charts ──────────────────────────────
+const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+const attackCtx   = document.getElementById('attackChart').getContext('2d');
+const protoCtx    = document.getElementById('protoChart').getContext('2d');
+
+const timelineChart = new Chart(timelineCtx, {
+  type: 'line',
+  data: { labels: [], datasets: [{
+    label: 'Threat Score', data: [],
+    borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.06)',
+    borderWidth: 2, pointRadius: 2, tension: 0.4, fill: true
+  }]},
+  options: {
+    responsive: true, animation: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#64748b', maxTicksLimit: 8 }, grid: { color: '#1e293b' } },
+      y: { min: 0, max: 1, ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+    }
+  }
+});
+
+const attackChart = new Chart(attackCtx, {
+  type: 'doughnut',
+  data: { labels: [], datasets: [{ data: [], backgroundColor: [
+    '#00d4ff','#ef4444','#f59e0b','#10b981','#7c3aed','#f97316','#3b82f6','#ec4899'
+  ], borderWidth: 0 }]},
+  options: {
+    responsive: true, cutout: '65%',
+    plugins: { legend: { position: 'bottom', labels: { color: '#64748b', font: { size: 10 } } } }
+  }
+});
+
+const protoChart = new Chart(protoCtx, {
+  type: 'bar',
+  data: { labels: [], datasets: [{ data: [],
+    backgroundColor: 'rgba(0,212,255,0.5)', borderColor: '#00d4ff', borderWidth: 1
+  }]},
+  options: {
+    responsive: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+      y: { ticks: { color: '#64748b' }, grid: { display: false } }
+    }
+  }
+});
+
+// ─── Data refresh ─────────────────────────
+let lastAlertCount = 0;
+
+async function refreshDashboard() {
+  try {
+    const [statsRes, chartRes, alertsRes] = await Promise.all([
+      fetch('/api/stats').then(r=>r.json()),
+      fetch('/api/recent_chart').then(r=>r.json()),
+      fetch('/api/alerts?limit=10').then(r=>r.json()),
+    ]);
+
+    // Stats
+    document.getElementById('s-total').textContent    = statsRes.total_flows.toLocaleString();
+    document.getElementById('s-threats').textContent  = statsRes.total_threats.toLocaleString();
+    document.getElementById('s-critical').textContent = statsRes.critical.toLocaleString();
+    document.getElementById('s-high').textContent     = statsRes.high.toLocaleString();
+    document.getElementById('s-medium').textContent   = statsRes.medium.toLocaleString();
+    document.getElementById('s-detect-rate').textContent = `Detection rate: ${statsRes.detection_rate}%`;
+    document.getElementById('s-uptime').textContent   = `Since ${statsRes.started_at}`;
+
+    // Timeline chart
+    timelineChart.data.labels   = chartRes.map(d=>d.t);
+    timelineChart.data.datasets[0].data = chartRes.map(d=>d.score);
+    timelineChart.data.datasets[0].pointBackgroundColor = chartRes.map(d=>d.threat?'#ef4444':'#00d4ff');
+    timelineChart.update('none');
+
+    // Attack doughnut
+    const ac = statsRes.attack_counts || {};
+    attackChart.data.labels   = Object.keys(ac);
+    attackChart.data.datasets[0].data = Object.values(ac);
+    attackChart.update('none');
+
+    // Protocol bar
+    const pc = statsRes.protocol_counts || {};
+    const sorted = Object.entries(pc).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    protoChart.data.labels   = sorted.map(e=>e[0]);
+    protoChart.data.datasets[0].data = sorted.map(e=>e[1]);
+    protoChart.update('none');
+
+    // Recent alerts
+    const tbody = document.getElementById('recent-alerts-body');
+    if (alertsRes.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">No threats detected yet…</td></tr>`;
+    } else {
+      tbody.innerHTML = alertsRes.slice(0,10).map(a => `
+        <tr>
+          <td style="color:var(--muted)">#${a.id}</td>
+          <td style="font-family:monospace;font-size:0.78rem">${a.timestamp}</td>
+          <td style="color:var(--accent)">${a.src_ip}</td>
+          <td>${a.dst_ip}</td>
+          <td><span class="badge badge-protocol">${a.protocol}</span></td>
+          <td style="color:var(--warning)">${a.attack_type}</td>
+          <td>${severityBadge(a.threat_level)}</td>
+          <td>${scoreBar(a.score)}</td>
+        </tr>`).join('');
+    }
+
+    // Toast new alerts
+    if (alertsRes.length > lastAlertCount && lastAlertCount > 0) {
+      const newest = alertsRes[0];
+      if (newest.threat_level === 'CRITICAL' || newest.threat_level === 'HIGH') {
+        toast(`🚨 ${newest.threat_level} ALERT`,
+              `${newest.attack_type} from ${newest.src_ip}`,
+              newest.threat_level.toLowerCase());
+      }
+    }
+    lastAlertCount = alertsRes.length;
+
+  } catch(e) { console.warn('Dashboard refresh error:', e); }
+}
+
+async function refreshAlerts() {
+  try {
+    const data = await fetch('/api/alerts?limit=200').then(r=>r.json());
+    const filter = document.getElementById('filter-severity')?.value || '';
+    const filtered = filter ? data.filter(a=>a.threat_level===filter) : data;
+    const tbody = document.getElementById('alerts-body');
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:2rem;">No alerts matching filter</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = filtered.map(a => {
+      const ms = a.model_scores || {};
+      return `<tr>
+        <td style="color:var(--muted)">#${a.id}</td>
+        <td style="font-family:monospace;font-size:0.75rem">${a.timestamp}</td>
+        <td style="color:var(--accent)">${a.src_ip}</td>
+        <td>${a.dst_ip}</td>
+        <td>${a.src_port}</td>
+        <td>${a.dst_port}</td>
+        <td><span class="badge badge-protocol">${a.protocol}</span></td>
+        <td style="color:var(--warning)">${a.attack_type}</td>
+        <td>${severityBadge(a.threat_level)}</td>
+        <td>${scoreBar(a.score)}</td>
+        <td style="font-family:monospace;font-size:0.75rem">${ms.random_forest !== undefined ? (ms.random_forest*100).toFixed(0)+'%' : '—'}</td>
+        <td style="font-family:monospace;font-size:0.75rem">${ms.isolation_forest !== undefined ? (ms.isolation_forest*100).toFixed(0)+'%' : '—'}</td>
+        <td style="font-family:monospace;font-size:0.75rem">${ms.lstm !== undefined ? (ms.lstm*100).toFixed(0)+'%' : '—'}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.warn('Alerts refresh error:', e); }
+}
+
+async function refreshTraffic() {
+  try {
+    const data = await fetch('/api/traffic?limit=100').then(r=>r.json());
+    const tbody = document.getElementById('traffic-body');
+    tbody.innerHTML = data.map(f => {
+      const badge = f.is_threat ? severityBadge(f.threat_level) : `<span class="badge badge-benign">BENIGN</span>`;
+      return `<tr>
+        <td style="color:var(--muted)">#${f.id}</td>
+        <td style="font-family:monospace;font-size:0.75rem">${f.timestamp}</td>
+        <td style="color:var(--accent)">${f.src_ip}</td>
+        <td>${f.dst_ip}</td>
+        <td><span class="badge badge-protocol">${f.protocol}</span></td>
+        <td>${badge} ${f.is_threat ? '<span style="color:var(--warning);font-size:0.75rem"> '+f.attack_type+'</span>' : ''}</td>
+        <td>${scoreBar(f.score)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.warn('Traffic refresh error:', e); }
+}
+
+// ─── Analyse ──────────────────────────────
+async function analyseFlow() {
+  const features = {
+    'Flow Duration':                   parseFloat(document.getElementById('f-duration').value)||0,
+    'Total Fwd Packets':               parseFloat(document.getElementById('f-fwd-pkts').value)||0,
+    'Total Backward Packets':          parseFloat(document.getElementById('f-bwd-pkts').value)||0,
+    'Flow Bytes/s':                    parseFloat(document.getElementById('f-bytes').value)||0,
+    'Flow Packets/s':                  parseFloat(document.getElementById('f-pkt-rate').value)||0,
+    'SYN Flag Count':                  parseFloat(document.getElementById('f-syn').value)||0,
+    'Flow IAT Mean':                   parseFloat(document.getElementById('f-iat-mean').value)||0,
+    'Flow IAT Std':                    parseFloat(document.getElementById('f-iat-std').value)||0,
+    'Total Length of Fwd Packets':     parseFloat(document.getElementById('f-fwd-bytes').value)||0,
+    'Total Length of Bwd Packets':     parseFloat(document.getElementById('f-bwd-bytes').value)||0,
+  };
+  showResult(await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(features)}).then(r=>r.json()));
+}
+
+async function simulateAttack(type) {
+  const res = await fetch('/api/simulate_attack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({attack_type:type})}).then(r=>r.json());
+  showResult(res);
+}
+
+function showResult(result) {
+  const pct = Math.round(result.ensemble_score * 100);
+  const color = pct > 85 ? 'var(--critical)' : pct > 65 ? 'var(--danger)' :
+                pct > 40 ? 'var(--medium)' : 'var(--accent3)';
+  const ms = result.model_scores || {};
+  const rows = Object.entries(ms).map(([k,v]) =>
+    `<div class="model-row">
+      <span class="model-name">${k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>
+      <span class="model-score" style="color:${color}">${(v*100).toFixed(1)}%</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('result-card').innerHTML = `
+    <div class="form-title">Analysis Result</div>
+    <div class="threat-meter">
+      <div class="threat-score-big" style="color:${color}">${pct}%</div>
+      <div class="threat-label-big" style="color:${color}">${result.threat_level}</div>
+      <div style="color:var(--muted);font-size:0.8rem;margin-top:6px;">
+        ${result.is_threat ? '⚠️ Threat Detected: <b>' + result.attack_type + '</b>' : '✅ Benign Traffic'}
+      </div>
+      ${result.simulated ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:4px;">Simulated scenario</div>' : ''}
+    </div>
+    <div class="model-breakdown">
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">MODEL SCORES</div>
+      ${rows}
+    </div>
+    <div style="margin-top:1rem;padding:10px;background:var(--bg-deep);border-radius:8px;font-size:0.78rem;color:var(--muted);">
+      <b style="color:var(--text)">Ensemble Method:</b> Weighted average — RF (50%) + IF (20%) + LSTM (30%)
+    </div>`;
+}
+
+// ─── Auto-refresh ─────────────────────────
+refreshDashboard();
+setInterval(refreshDashboard, 3000);
+
+document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+  const labels = ['dashboard','alerts','traffic','analyse'];
+  btn.addEventListener('click', () => {
+    if (labels[i] === 'alerts')  refreshAlerts();
+    if (labels[i] === 'traffic') refreshTraffic();
+  });
+});
+</script>
+</body>
+</html>

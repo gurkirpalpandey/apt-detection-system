@@ -4,11 +4,7 @@ Real-time Advanced Persistent Threat detection using
 Machine Learning and Network Behavior Analysis.
 
 ## Team
-- Gurkirpal Pandey (A25305223020)
-- Prince (A25305223053)
-
-## Supervisor
-Dr. Avatar Singh — Amity University Punjab, Mohali
+- Gurkirpal Pandey
 
 ## Tech Stack
 Python | Flask | Random Forest | Isolation Forest | Chart.js
